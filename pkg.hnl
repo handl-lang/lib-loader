@@ -1,0 +1,3 @@
+-- lib-loader: modules this package provides (entry defaults to
+-- src/index.hnl; N modules resolve to src/<name>/index.hnl).
+{ modules: ["loader"] }
