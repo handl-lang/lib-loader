@@ -260,6 +260,69 @@ do {
   }
 
   -- ---------------------------------------------------------------------
+  -- is_signature_rhs -- whether `rhs` is a top-level graded-arrow
+  -- signature `A ~[N]~> B` (contains `~[` at bracket depth 0). Signature
+  -- exports (`export Run := (Params) ~[N]~> Codomain`) are contract data:
+  -- the domain/codomain are *type* expressions exec must not evaluate
+  -- (Agda-style erasure — generic applications like `Result<T, E>` in a
+  -- codomain crash eval). `dim_arrow` mints an `Arrow` descriptor record,
+  -- never a callable, so erasing to `null` (like type-only `export N: T`)
+  -- loses no runtime behavior. Ungraded `A ~> B` is untouched: `(x) ~> b`
+  -- is a real arrow literal. Mirrors
+  -- `handl_runtime::module_prep::is_signature_rhs`.
+  -- ---------------------------------------------------------------------
+
+  is_signature_rhs :: rhs ~> do {
+    -- Track `~[`/`~>` at depth 0 plus a bare `[`/`{` element inside a
+    -- params list (directly after `(` or `,` — `x: [T]` annotations and
+    -- `xs[i]` indexes don't count). `prev` is the last non-space char.
+    while { xs: char.chars(rhs), i: 0, depth: 0, paren: 0, instr: "", prev: "", ltp: false } {
+      [xs, i, depth, paren, instr, prev, ltp] ~> match xs {
+        []: { out: false },
+        [c, ...t]: if instr != "" {
+          if c == "\\" {
+            { state: { xs: drop(t, 1), i: i + 2, depth: depth, paren: paren, instr: instr, prev: prev, ltp: ltp } }
+          } else {
+            { state: { xs: t, i: i + 1, depth: depth, paren: paren, instr: if c == instr { "" } else { instr }, prev: prev, ltp: ltp } }
+          }
+        } else {
+          if c == dq || c == sq {
+            { state: { xs: t, i: i + 1, depth: depth, paren: paren, instr: c, prev: c, ltp: ltp } }
+          } else {
+            if c == "(" {
+              { state: { xs: t, i: i + 1, depth: depth + 1, paren: paren + 1, instr: instr, prev: c, ltp: ltp } }
+            } else {
+              if c == "[" || c == "{" {
+                l2 :: ltp || (paren > 0 && (prev == "(" || prev == ","))
+                { state: { xs: t, i: i + 1, depth: depth + 1, paren: paren, instr: instr, prev: c, ltp: l2 } }
+              } else {
+                if c == ")" {
+                  { state: { xs: t, i: i + 1, depth: depth - 1, paren: paren - 1, instr: instr, prev: c, ltp: ltp } }
+                } else {
+                  if c == "]" || c == "}" {
+                    { state: { xs: t, i: i + 1, depth: depth - 1, paren: paren, instr: instr, prev: c, ltp: ltp } }
+                  } else {
+                    if c == "~" && depth == 0 && atc(rhs, i + 1) == "[" {
+                      { out: true }
+                    } else {
+                      if c == "~" && depth == 0 && atc(rhs, i + 1) == ">" {
+                        { out: ltp }
+                      } else {
+                        prv :: if c == " " || c == "\t" || c == "\n" || c == "\r" { prev } else { c }
+                        { state: { xs: t, i: i + 1, depth: depth, paren: paren, instr: instr, prev: prv, ltp: ltp } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  -- ---------------------------------------------------------------------
   -- strip_export_name -- Strip generics `<...>` and type annotation
   -- `: Type` from an export name portion, returning the bare name.
   -- e.g. `len<T>: List(T) ~[1]~> Nat ` -> `len`
@@ -752,8 +815,9 @@ do {
                   if blank(nm) {
                     error.raise("module prep: `export` declaration has no binding name: " + t0)
                   } else {
-                    type_only :: sep.len == 1 && atc(erest, sep.pos) == ":"
-                    expr0 :: if type_only { "null" } else { trim(sdrop(erest, sep.pos + sep.len)) }
+                    expr_rhs :: trim(sdrop(erest, sep.pos + sep.len))
+                    type_only :: sep.len == 1 && atc(erest, sep.pos) == ":" || is_signature_rhs(expr_rhs)
+                    expr0 :: if type_only { "null" } else { expr_rhs }
                     { state: { xs: t, entries: entries2, priv: priv2,
                                cur: { name: nm,
                                       lines: if slen(expr0) == 0 { [] } else { [expr0] } },
