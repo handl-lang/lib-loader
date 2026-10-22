@@ -286,8 +286,10 @@ do {
   -- `xs[i]`) is a value expression. Mirrors
   -- `handl_runtime::module_prep::graded_arrow_is_signature`.
   graded_arrow_is_signature :: [rhs, tilde] ~> do {
-    -- Grade text between `~[` and its matching `]`.
-    gt :: while { xs: sdrop(rhs, tilde + 2), depth: 1, acc: "" } {
+    -- Grade text between `~[` and its matching `]`. `char.chars` turns the
+    -- slice into a char list — a bare Str scrutinee never matches the
+    -- `[]`/`[h, ...t]` arms below (match: no arm matched).
+    gt :: while { xs: char.chars(sdrop(rhs, tilde + 2)), depth: 1, acc: "" } {
       [xs, depth, acc] ~> match xs {
         []: { out: acc },
         [h, ...t]: if h == "]" && depth == 1 {
