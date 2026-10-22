@@ -260,17 +260,64 @@ do {
   }
 
   -- ---------------------------------------------------------------------
-  -- is_signature_rhs -- whether `rhs` is a top-level graded-arrow
-  -- signature `A ~[N]~> B` (contains `~[` at bracket depth 0). Signature
-  -- exports (`export Run := (Params) ~[N]~> Codomain`) are contract data:
-  -- the domain/codomain are *type* expressions exec must not evaluate
-  -- (Agda-style erasure — generic applications like `Result<T, E>` in a
-  -- codomain crash eval). `dim_arrow` mints an `Arrow` descriptor record,
-  -- never a callable, so erasing to `null` (like type-only `export N: T`)
-  -- loses no runtime behavior. Ungraded `A ~> B` is untouched: `(x) ~> b`
-  -- is a real arrow literal. Mirrors
-  -- `handl_runtime::module_prep::is_signature_rhs`.
+  -- is_signature_rhs -- whether `rhs` is a top-level arrow *signature* —
+  -- contract data whose domain/codomain are *type* expressions exec must
+  -- not evaluate (Agda-style erasure — generic applications like
+  -- `Result<T, E>` in a codomain crash eval). Signature exports
+  -- (`export Run := (Params) ~[1]~> Codomain`) mint an `Arrow` descriptor
+  -- record, never a callable, so erasing to `null` (like type-only
+  -- `export N: T`) loses no runtime behavior. A depth-0 `~[` is only a
+  -- signature when `graded_arrow_is_signature` holds — an n-cell *value*
+  -- export like `export alpha := f ~[2]~> g` is kept. Ungraded `A ~> B`
+  -- is untouched unless a params list carries a bare `[`/`{` element.
+  -- Mirrors `handl_runtime::module_prep::is_signature_rhs`.
   -- ---------------------------------------------------------------------
+
+  -- graded_arrow_is_signature -- whether a depth-0 `~[` at char index
+  -- `tilde` opens a graded-arrow *signature* `Type ~[1]~> Type` (erase)
+  -- rather than a genuine n-cell *value* `f ~[N]~> g` (keep) — the
+  -- `export alpha := f ~[2]~> g` footgun this guard used to erase to
+  -- `null`. Corpus sweep (every `~[` across lib-*/kit-*/handl-packages):
+  -- all signatures grade `~[1]~>`; every `~[2]~>`+/`~[N]~>` is a cell
+  -- term. So a non-`1` grade is a cell value, and a grade-1 arrow erases
+  -- only when its domain is type-shaped: `(...)`/`{...}` params, a bare
+  -- `[T]` list type, or a `Capitalized` type head (`Int`, `Result<A,B>`).
+  -- A lowercase/literal/index-led LHS (`f`, `map inc`, `"a >>> b"`,
+  -- `xs[i]`) is a value expression. Mirrors
+  -- `handl_runtime::module_prep::graded_arrow_is_signature`.
+  graded_arrow_is_signature :: [rhs, tilde] ~> do {
+    -- Grade text between `~[` and its matching `]`.
+    gt :: while { xs: sdrop(rhs, tilde + 2), depth: 1, acc: "" } {
+      [xs, depth, acc] ~> match xs {
+        []: { out: acc },
+        [h, ...t]: if h == "]" && depth == 1 {
+          { out: acc }
+        } else {
+          d2 :: if h == "[" { depth + 1 } else { if h == "]" { depth - 1 } else { depth } }
+          { state: { xs: t, depth: d2, acc: acc + h } }
+        }
+      }
+    }
+    if trim(gt) != "1" {
+      false
+    } else {
+      lhs :: trim(stake(rhs, tilde))
+      if slen(lhs) == 0 {
+        true
+      } else {
+        lastc :: atc(lhs, slen(lhs) - 1)
+        if lastc == ")" || lastc == "}" {
+          true
+        } else {
+          if lastc == "]" {
+            atc(lhs, 0) == "["
+          } else {
+            char.is_uppercase(atc(lhs, 0))
+          }
+        }
+      }
+    }
+  }
 
   is_signature_rhs :: rhs ~> do {
     -- Track `~[`/`~>` at depth 0 plus a bare `[`/`{` element inside a
@@ -303,7 +350,7 @@ do {
                     { state: { xs: t, i: i + 1, depth: depth - 1, paren: paren, instr: instr, prev: c, ltp: ltp } }
                   } else {
                     if c == "~" && depth == 0 && atc(rhs, i + 1) == "[" {
-                      { out: true }
+                      { out: graded_arrow_is_signature(rhs, i) }
                     } else {
                       if c == "~" && depth == 0 && atc(rhs, i + 1) == ">" {
                         { out: ltp }
