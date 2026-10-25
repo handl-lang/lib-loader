@@ -17,3 +17,13 @@ pkg.hnl     dependencies, when any: `{ deps: { <name>: "branch:<ref>" } }`
 ```bash
 HNL=../host-cli/target/debug/hnl scripts/hnl-gate.sh
 ```
+
+## Documentation
+
+Published site (Diátaxis): <https://handl-lang.github.io/docs/lib-loader/>
+
+- [Reference](https://handl-lang.github.io/docs/lib-loader/reference/) — public API surface
+- [How-to](https://handl-lang.github.io/docs/lib-loader/how-to/) — task recipes
+- [Explanation](https://handl-lang.github.io/docs/lib-loader/explanation/) — design and rationale
+
+Decision records live on the `project` branch under `project/adrs/`.
