@@ -2,9 +2,12 @@
 name = "handl-lib-loader"
 version = "0.1.0"
 edition = "2024"
-description = "loader: pure-handl module loader — host runtime internal (ADR-0128 split)."
-license = "MIT OR Apache-2.0"
+description = "loader: pure-handl module loader — host runtime internal."
+license = "MIT"
 repository = "https://github.com/handl-lang/lib-loader"
+homepage = "https://github.com/handl-lang/lib-loader"
+documentation = "https://handl-lang.github.io/docs/lib-loader/"
+readme = "README.md"
 
 # Const-only: pure handl.
 [dependencies]
