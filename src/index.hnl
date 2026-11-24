@@ -23,17 +23,17 @@ do {
   -- Character constants (no escapes needed beyond the canonical set)
   -- ---------------------------------------------------------------------
 
-  nl :: char.from_code_point(10)
-  tab :: char.from_code_point(9)
-  dq :: char.from_code_point(34)
-  sq :: char.from_code_point(39)
-  backslash :: char.from_code_point(92)
+  nl := char.from_code_point(10)
+  tab := char.from_code_point(9)
+  dq := char.from_code_point(34)
+  sq := char.from_code_point(39)
+  backslash := char.from_code_point(92)
 
   -- ---------------------------------------------------------------------
   -- List helpers
   -- ---------------------------------------------------------------------
 
-  rev :: xs ~> do {
+  rev := xs ~> do {
     while { xs: xs, acc: [] } {
       [xs, acc] ~> match xs {
         []: { out: acc },
@@ -42,7 +42,7 @@ do {
     }
   }
 
-  list_len :: xs ~> do {
+  list_len := xs ~> do {
     while { xs: xs, n: 0 } {
       [xs, n] ~> match xs {
         []: { out: n },
@@ -51,14 +51,14 @@ do {
     }
   }
 
-  head :: xs ~> match xs {
+  head := xs ~> match xs {
     []: "",
     [h, ...t]: h
   }
 
-  last :: xs ~> head(rev(xs))
+  last := xs ~> head(rev(xs))
 
-  member :: [x, xs] ~> do {
+  member := [x, xs] ~> do {
     while xs {
       st ~> match st {
         []: { out: false },
@@ -67,7 +67,7 @@ do {
     }
   }
 
-  all :: [xs, p] ~> do {
+  all := [xs, p] ~> do {
     while xs {
       st ~> match st {
         []: { out: true },
@@ -80,23 +80,23 @@ do {
   -- String helpers (all indices are char indices)
   -- ---------------------------------------------------------------------
 
-  slen :: s ~> char.length(s)
-  atc :: [s, i] ~> char.slice(s, i, i + 1)
-  stake :: [s, n] ~> char.slice(s, 0, n)
-  sdrop :: [s, n] ~> char.slice(s, n, slen(s))
-  trim :: s ~> str.trim(s)
-  trim_start :: s ~> str.trim_start(s)
-  blank :: s ~> slen(trim(s)) == 0
-  indented :: s ~> do {
-    c :: atc(s, 0)
+  slen := s ~> char.length(s)
+  atc := [s, i] ~> char.slice(s, i, i + 1)
+  stake := [s, n] ~> char.slice(s, 0, n)
+  sdrop := [s, n] ~> char.slice(s, n, slen(s))
+  trim := s ~> str.trim(s)
+  trim_start := s ~> str.trim_start(s)
+  blank := s ~> slen(trim(s)) == 0
+  indented := s ~> do {
+    c := atc(s, 0)
     c == " " || c == tab
   }
 
   -- True when `t` starts with `kw` followed by a delimiter: end of
   -- string, space, tab, or one of the chars in `extras` (e.g. quotes).
-  kw_match :: [t, kw, extras] ~> do {
+  kw_match := [t, kw, extras] ~> do {
     if str.starts_with(t, kw) {
-      r :: sdrop(t, slen(kw))
+      r := sdrop(t, slen(kw))
       slen(r) == 0 || member(atc(r, 0), [" ", tab, ...extras])
     } else {
       false
@@ -105,7 +105,7 @@ do {
 
   -- If `t` starts with `kw` followed by a delimiter, return the text
   -- after `kw`; else null.
-  kw_rest :: [t, kw, extras] ~> do {
+  kw_rest := [t, kw, extras] ~> do {
     if kw_match(t, kw, extras) {
       sdrop(t, slen(kw))
     } else {
@@ -115,12 +115,12 @@ do {
 
   -- Extract a `"..."` or `'...'` quoted string from the start of `s`
   -- (after leading whitespace).  Returns `{text, rest}` or null.
-  extract_quoted :: s ~> do {
-    t :: trim_start(s)
-    q :: atc(t, 0)
+  extract_quoted := s ~> do {
+    t := trim_start(s)
+    q := atc(t, 0)
     if q == dq || q == sq {
-      r :: sdrop(t, 1)
-      e :: str.find(r, q)
+      r := sdrop(t, 1)
+      e := str.find(r, q)
       if e < 0 {
         null
       } else {
@@ -132,8 +132,8 @@ do {
   }
 
   -- First whitespace-delimited word of `s` (s already trimmed).
-  first_word :: s ~> do {
-    ws :: str.split_whitespace(s)
+  first_word := s ~> do {
+    ws := str.split_whitespace(s)
     match ws {
       []: "",
       [h, ...t]: h
@@ -144,8 +144,8 @@ do {
   -- strip_comments -- drop `--` comment lines
   -- ---------------------------------------------------------------------
 
-  strip_comments :: s ~> do {
-    kept :: while { xs: str.lines(s), acc: [] } {
+  strip_comments := s ~> do {
+    kept := while { xs: str.lines(s), acc: [] } {
       [xs, acc] ~> match xs {
         []: { out: rev(acc) },
         [h, ...t]: if str.starts_with(trim_start(h), "--") {
@@ -170,11 +170,11 @@ do {
   -- emitted `do { ... }` block.
   -- ---------------------------------------------------------------------
 
-  is_import_line :: t ~> do {
+  is_import_line := t ~> do {
     kw_match(t, "import", [dq, sq]) || kw_match(t, "from", [])
   }
 
-  is_decl_line :: [line, t] ~> do {
+  is_decl_line := [line, t] ~> do {
     if indented(line) &&
        (str.starts_with(t, "guarantee") ||
         str.starts_with(t, "requires") ||
@@ -191,8 +191,8 @@ do {
     }
   }
 
-  strip_decls :: s ~> do {
-    kept :: while { xs: str.lines(s), acc: [] } {
+  strip_decls := s ~> do {
+    kept := while { xs: str.lines(s), acc: [] } {
       [xs, acc] ~> match xs {
         []: { out: rev(acc) },
         [h, ...t]: if is_decl_line(h, trim_start(h)) {
@@ -206,52 +206,39 @@ do {
   }
 
   -- ---------------------------------------------------------------------
-  -- find_binding_sep -- locate the `::` (canonical) or legacy `=` bind
-  -- separator at bracket depth 0, skipping `==`, `=>`, `>=`, `<=`, `!=`.
-  -- `::` takes precedence and returns immediately; the first bare `=` is
-  -- remembered but the scan continues.  Returns `{pos, len}` or null.
+  -- find_binding_sep -- locate the `:=` binding separator at bracket
+  -- depth 0 (`=`/`==` are equality, `::` is gone).  A lone `:` is the
+  -- type-only `export x : T` separator — remembered but the scan
+  -- continues.  Returns `{pos, len}` or null.  Mirrors
+  -- `handl_runtime::module_prep::find_binding_sep`.
   -- ---------------------------------------------------------------------
 
-  find_binding_sep :: s ~> do {
-    while { xs: char.chars(s), i: 0, depth: 0, feq: 0 - 1 } {
-      [xs, i, depth, feq] ~> match xs {
-        []: if feq >= 0 {
-          { out: { pos: feq, len: 1 } }
+  find_binding_sep := s ~> do {
+    while { xs: char.chars(s), i: 0, depth: 0, fcolon: 0 - 1 } {
+      [xs, i, depth, fcolon] ~> match xs {
+        []: if fcolon >= 0 {
+          { out: { pos: fcolon, len: 1 } }
         } else {
           { out: null }
         },
         [c, ...t]: if c == "(" || c == "[" || c == "{" {
-          { state: { xs: t, i: i + 1, depth: depth + 1, feq: feq } }
+          { state: { xs: t, i: i + 1, depth: depth + 1, fcolon: fcolon } }
         } else {
           if c == ")" || c == "]" || c == "}" {
-            { state: { xs: t, i: i + 1, depth: depth - 1, feq: feq } }
+            { state: { xs: t, i: i + 1, depth: depth - 1, fcolon: fcolon } }
           } else {
             if c == ":" && depth == 0 {
-              if atc(s, i + 1) == ":" {
-                { out: { pos: i, len: 2 } } -- ::  bind
+              if atc(s, i + 1) == "=" {
+                { out: { pos: i, len: 2 } } -- :=  the ONLY bind sep
               } else {
-                if atc(s, i + 1) == "=" {
-                  { out: { pos: i, len: 2 } } -- :=  graded bind
+                if fcolon < 0 {
+                  { state: { xs: t, i: i + 1, depth: depth, fcolon: i } }
                 } else {
-                  { state: { xs: t, i: i + 1, depth: depth, feq: feq } }
+                  { state: { xs: t, i: i + 1, depth: depth, fcolon: fcolon } }
                 }
               }
             } else {
-              if c == "=" && depth == 0 {
-                p :: if i > 0 { atc(s, i - 1) } else { "" }
-                n :: atc(s, i + 1)
-                if n == "=" || p == ">" || p == "<" || p == "!" || n == ">" {
-                  { state: { xs: t, i: i + 1, depth: depth, feq: feq } }
-                } else {
-                  if feq < 0 {
-                    { state: { xs: t, i: i + 1, depth: depth, feq: i } }
-                  } else {
-                    { state: { xs: t, i: i + 1, depth: depth, feq: feq } }
-                  }
-                }
-              } else {
-                { state: { xs: t, i: i + 1, depth: depth, feq: feq } }
-              }
+              { state: { xs: t, i: i + 1, depth: depth, fcolon: fcolon } }
             }
           }
         }
@@ -285,17 +272,17 @@ do {
   -- A lowercase/literal/index-led LHS (`f`, `map inc`, `"a >>> b"`,
   -- `xs[i]`) is a value expression. Mirrors
   -- `handl_runtime::module_prep::graded_arrow_is_signature`.
-  graded_arrow_is_signature :: [rhs, tilde] ~> do {
+  graded_arrow_is_signature := [rhs, tilde] ~> do {
     -- Grade text between `~[` and its matching `]`. `char.chars` turns the
     -- slice into a char list — a bare Str scrutinee never matches the
     -- `[]`/`[h, ...t]` arms below (match: no arm matched).
-    gt :: while { xs: char.chars(sdrop(rhs, tilde + 2)), depth: 1, acc: "" } {
+    gt := while { xs: char.chars(sdrop(rhs, tilde + 2)), depth: 1, acc: "" } {
       [xs, depth, acc] ~> match xs {
         []: { out: acc },
         [h, ...t]: if h == "]" && depth == 1 {
           { out: acc }
         } else {
-          d2 :: if h == "[" { depth + 1 } else { if h == "]" { depth - 1 } else { depth } }
+          d2 := if h == "[" { depth + 1 } else { if h == "]" { depth - 1 } else { depth } }
           { state: { xs: t, depth: d2, acc: acc + h } }
         }
       }
@@ -303,11 +290,11 @@ do {
     if trim(gt) != "1" {
       false
     } else {
-      lhs :: trim(stake(rhs, tilde))
+      lhs := trim(stake(rhs, tilde))
       if slen(lhs) == 0 {
         true
       } else {
-        lastc :: atc(lhs, slen(lhs) - 1)
+        lastc := atc(lhs, slen(lhs) - 1)
         if lastc == ")" || lastc == "}" {
           true
         } else {
@@ -321,7 +308,7 @@ do {
     }
   }
 
-  is_signature_rhs :: rhs ~> do {
+  is_signature_rhs := rhs ~> do {
     -- Track `~[`/`~>` at depth 0 plus a bare `[`/`{` element inside a
     -- params list (directly after `(` or `,` — `x: [T]` annotations and
     -- `xs[i]` indexes don't count). `prev` is the last non-space char.
@@ -342,7 +329,7 @@ do {
               { state: { xs: t, i: i + 1, depth: depth + 1, paren: paren + 1, instr: instr, prev: c, ltp: ltp } }
             } else {
               if c == "[" || c == "{" {
-                l2 :: ltp || (paren > 0 && (prev == "(" || prev == ","))
+                l2 := ltp || (paren > 0 && (prev == "(" || prev == ","))
                 { state: { xs: t, i: i + 1, depth: depth + 1, paren: paren, instr: instr, prev: c, ltp: l2 } }
               } else {
                 if c == ")" {
@@ -357,7 +344,7 @@ do {
                       if c == "~" && depth == 0 && atc(rhs, i + 1) == ">" {
                         { out: ltp }
                       } else {
-                        prv :: if c == " " || c == "\t" || c == "\n" || c == "\r" { prev } else { c }
+                        prv := if c == " " || c == "\t" || c == "\n" || c == "\r" { prev } else { c }
                         { state: { xs: t, i: i + 1, depth: depth, paren: paren, instr: instr, prev: prv, ltp: ltp } }
                       }
                     }
@@ -377,7 +364,7 @@ do {
   -- e.g. `len<T>: List(T) ~[1]~> Nat ` -> `len`
   -- ---------------------------------------------------------------------
 
-  strip_export_name :: s ~> do {
+  strip_export_name := s ~> do {
     while { xs: char.chars(s), i: 0, depth: 0, acc: "" } {
       [xs, i, depth, acc] ~> match xs {
         []: { out: acc },
@@ -420,22 +407,22 @@ do {
   -- "pending" | "from" | "import" | "export" | "other".
   -- ---------------------------------------------------------------------
 
-  tls_word_char :: c ~> char.is_alnum(c) || c == "_"
-  tls_word_start :: c ~> char.is_alpha(c) || c == "_"
+  tls_word_char := c ~> char.is_alnum(c) || c == "_"
+  tls_word_start := c ~> char.is_alpha(c) || c == "_"
 
-  top_level_segments :: s ~> do {
-    n :: slen(s)
+  top_level_segments := s ~> do {
+    n := slen(s)
     while {
       i: 0, start: 0, depth: 0, q: "", lc: false, bc: false,
       lead: "pending", tseen: false, segs: []
     } {
       [i, start, depth, q, lc, bc, lead, tseen, segs] ~> do {
-        c :: atc(s, i)
-        c1 :: atc(s, i + 1)
-        c2 :: atc(s, i + 2)
-        pl :: if lead == "pending" { "other" } else { lead }
+        c := atc(s, i)
+        c1 := atc(s, i + 1)
+        c2 := atc(s, i + 2)
+        pl := if lead == "pending" { "other" } else { lead }
         if i >= n {
-          tailseg :: char.slice(s, start, n)
+          tailseg := char.slice(s, start, n)
           { out: rev(if blank(tailseg) { segs } else { [tailseg, ...segs] }) }
         } else if lc {
           if c != nl {
@@ -444,7 +431,7 @@ do {
           } else {
             -- The newline ends the line comment AND may end the statement.
             if depth == 0 && !(c1 == " " || c1 == tab) {
-              seg :: char.slice(s, start, i)
+              seg := char.slice(s, start, i)
               { state: { i: i + 1, start: i + 1, depth: depth, q: "", lc: false,
                          bc: false, lead: "pending", tseen: false,
                          segs: if blank(seg) { segs } else { [seg, ...segs] } } }
@@ -462,8 +449,8 @@ do {
                        bc: true, lead: lead, tseen: tseen, segs: segs } }
           }
         } else if slen(q) > 0 {
-          ni :: if c == backslash { i + 2 } else { i + 1 }
-          nq :: if c == backslash { q } else { if c == q { "" } else { q } }
+          ni := if c == backslash { i + 2 } else { i + 1 }
+          nq := if c == backslash { q } else { if c == q { "" } else { q } }
           { state: { i: ni, start: start, depth: depth, q: nq, lc: false,
                      bc: false, lead: pl, tseen: tseen, segs: segs } }
         } else if c == "-" && c1 == "-" {
@@ -482,29 +469,29 @@ do {
           { state: { i: i + 1, start: start, depth: depth - 1, q: "", lc: false,
                      bc: false, lead: pl, tseen: tseen, segs: segs } }
         } else if c == ";" && depth == 0 {
-          seg :: char.slice(s, start, i)
+          seg := char.slice(s, start, i)
           { state: { i: i + 1, start: i + 1, depth: depth, q: "", lc: false,
                      bc: false, lead: "pending", tseen: false,
                      segs: if blank(seg) { segs } else { [seg, ...segs] } } }
         } else if c == nl && depth == 0 && !(c1 == " " || c1 == tab) {
-          seg :: char.slice(s, start, i)
+          seg := char.slice(s, start, i)
           { state: { i: i + 1, start: i + 1, depth: depth, q: "", lc: false,
                      bc: false, lead: "pending", tseen: false,
                      segs: if blank(seg) { segs } else { [seg, ...segs] } } }
         } else if depth == 0 && tls_word_start(c) {
           -- Consume a whole identifier word so keywords inside larger names
           -- (`exporter`, `fromage`) never match.
-          wscan :: while { j: i + 1, w: c } {
+          wscan := while { j: i + 1, w: c } {
             [j, w] ~> if j < n && tls_word_char(atc(s, j)) {
               { state: { j: j + 1, w: w + atc(s, j) } }
             } else {
               { out: { j: j, w: w } }
             }
           }
-          j :: wscan.j
-          word :: wscan.w
-          dotted :: i > 0 && atc(s, i - 1) == "."
-          kw :: if !dotted && (word == "export" || word == "import" || word == "from") {
+          j := wscan.j
+          word := wscan.w
+          dotted := i > 0 && atc(s, i - 1) == "."
+          kw := if !dotted && (word == "export" || word == "import" || word == "from") {
             word
           } else {
             ""
@@ -522,7 +509,7 @@ do {
           } else if slen(kw) > 0 {
             -- A statement keyword at depth 0 mid-statement: the next
             -- statement starts here.
-            seg :: char.slice(s, start, i)
+            seg := char.slice(s, start, i)
             { state: { i: j, start: i, depth: depth, q: "", lc: false,
                        bc: false, lead: kw, tseen: false,
                        segs: if blank(seg) { segs } else { [seg, ...segs] } } }
@@ -548,15 +535,15 @@ do {
   -- `handl_runtime::module_prep::export_decl_rest`.
   -- ---------------------------------------------------------------------
 
-  export_decl_rest :: t ~> do {
+  export_decl_rest := t ~> do {
     if !str.starts_with(t, "export") {
       null
     } else {
-      r0 :: sdrop(t, 6)
+      r0 := sdrop(t, 6)
       if slen(r0) == 0 {
         ""
       } else {
-        c0 :: atc(r0, 0)
+        c0 := atc(r0, 0)
         if char.is_alnum(c0) || c0 == "_" { null } else { trim_start(r0) }
       }
     }
@@ -570,7 +557,7 @@ do {
   -- ---------------------------------------------------------------------
 
   -- Emit `{ name: expr, ... }` from a list of `{name, expr}` records.
-  emit_object :: entries ~> do {
+  emit_object := entries ~> do {
     while { xs: entries, acc: "{ " } {
       [xs, acc] ~> match xs {
         []: { out: acc + " }" },
@@ -588,14 +575,14 @@ do {
   -- returning { path, rest } or null.
   -- ---------------------------------------------------------------------
 
-  extract_quoted_path :: line ~> do {
-    t :: trim_start(line)
+  extract_quoted_path := line ~> do {
+    t := trim_start(line)
     if !str.starts_with(t, "from") { null } else {
-      rest0 :: trim_start(sdrop(t, 4))
-      q :: if slen(rest0) == 0 { "" } else { atc(rest0, 0) }
+      rest0 := trim_start(sdrop(t, 4))
+      q := if slen(rest0) == 0 { "" } else { atc(rest0, 0) }
       if q != dq && q != sq { null } else {
-        rest1 :: sdrop(rest0, 1)
-        idx :: str.find(rest1, q)
+        rest1 := sdrop(rest0, 1)
+        idx := str.find(rest1, q)
         if idx < 0 { null } else {
           { path: stake(rest1, idx), rest: sdrop(rest1, idx + 1) }
         }
@@ -610,19 +597,19 @@ do {
   -- re-export form.  Mirrors `handl_runtime::module_prep`'s handling.
   -- ---------------------------------------------------------------------
 
-  from_export_to_import :: line ~> do {
-    ep :: extract_quoted_path(line)
+  from_export_to_import := line ~> do {
+    ep := extract_quoted_path(line)
     if ep == null { null } else {
-      tail :: trim_start(ep.rest)
+      tail := trim_start(ep.rest)
       if !str.starts_with(tail, "export") { null } else {
-        rest :: sdrop(tail, 6)
-        c0 :: if slen(rest) == 0 { "" } else { atc(rest, 0) }
+        rest := sdrop(tail, 6)
+        c0 := if slen(rest) == 0 { "" } else { atc(rest, 0) }
         if slen(rest) > 0 && c0 != " " && c0 != "\t" { null } else {
-          scan :: while { xs: str.split(rest, ","), names: [], imps: [] } {
+          scan := while { xs: str.split(rest, ","), names: [], imps: [] } {
             [xs, names, imps] ~> match xs {
               []: { out: { names: rev(names), imps: str.join(rev(imps), ", ") } },
               [h, ...t]: do {
-                n :: trim(h)
+                n := trim(h)
                 if slen(n) == 0 {
                   { state: { xs: t, names: names, imps: imps } }
                 } else {
@@ -646,18 +633,18 @@ do {
   -- local aliases the record literal references.  Statement segmentation
   -- mirrors `handl_runtime::module_prep`: an import is recognized wherever
   -- a statement can begin, not only at column 0 of a line.
-  collect_import_lines :: s ~> do {
+  collect_import_lines := s ~> do {
     while { xs: top_level_segments(s), acc: [] } {
       [xs, acc] ~> match xs {
         []: { out: rev(acc) },
         [h, ...t]: do {
-          t0 :: trim(h)
+          t0 := trim(h)
           if is_import_line(t0) {
-            fe :: from_export_to_import(t0)
+            fe := from_export_to_import(t0)
             -- Inside a `do {}` block, `import <names>` trailing-tokens
             -- parsing does not stop at the newline — terminate each import
             -- with `;` so the following statement can't merge in.
-            ln :: if fe == null { t0 } else { fe.line }
+            ln := if fe == null { t0 } else { fe.line }
             { state: { xs: t, acc: [ln + ";", ...acc] } }
           } else {
             { state: { xs: t, acc: acc } }
@@ -670,8 +657,8 @@ do {
   -- `s` with top-level import statements removed (all other statements
   -- kept verbatim, joined by newlines) — mirrors
   -- `handl_runtime::module_prep::drop_all_import_lines`.
-  drop_import_lines :: s ~> do {
-    kept :: while { xs: top_level_segments(s), acc: [] } {
+  drop_import_lines := s ~> do {
+    kept := while { xs: top_level_segments(s), acc: [] } {
       [xs, acc] ~> match xs {
         []: { out: rev(acc) },
         [h, ...t]: if is_import_line(trim(h)) {
@@ -688,13 +675,13 @@ do {
   -- alphabetic character or underscore, followed by zero or more
   -- alphanumeric characters or underscores.  Mirrors
   -- `handl_runtime::module_prep`'s private-binding check.
-  is_valid_ident :: s ~> do {
+  is_valid_ident := s ~> do {
     if slen(s) == 0 { false } else {
-      c0 :: atc(s, 0)
+      c0 := atc(s, 0)
       if !(char.is_alpha(c0) || c0 == "_") { false } else {
         while { i: 1, ok: true } {
           [i, ok] ~> if !ok || i >= slen(s) { { out: ok } } else {
-            c :: atc(s, i)
+            c := atc(s, i)
             { state: { i: i + 1, ok: char.is_alnum(c) || c == "_" } }
           }
         }
@@ -711,18 +698,18 @@ do {
   -- `handl_runtime::module_prep::import_bound_locals`.
   -- ---------------------------------------------------------------------
 
-  import_bound_locals :: line ~> do {
-    t :: trim_start(line)
+  import_bound_locals := line ~> do {
+    t := trim_start(line)
     if str.starts_with(t, "from") {
-      ep :: extract_quoted_path(t)
+      ep := extract_quoted_path(t)
       if ep == null { [] } else {
-        rest :: trim_start(ep.rest)
+        rest := trim_start(ep.rest)
         if !str.starts_with(rest, "import") { [] } else {
-          tail0 :: sdrop(rest, 6)
-          c0 :: if slen(tail0) == 0 { "" } else { atc(tail0, 0) }
+          tail0 := sdrop(rest, 6)
+          c0 := if slen(tail0) == 0 { "" } else { atc(tail0, 0) }
           if slen(tail0) > 0 && c0 != " " && c0 != tab { [] } else {
-            tail1 :: trim_start(tail0)
-            inner :: if str.starts_with(tail1, "{") && slen(tail1) > 1 && atc(tail1, slen(tail1) - 1) == "}" {
+            tail1 := trim_start(tail0)
+            inner := if str.starts_with(tail1, "{") && slen(tail1) > 1 && atc(tail1, slen(tail1) - 1) == "}" {
               sdrop(stake(tail1, slen(tail1) - 1), 1)
             } else {
               tail1
@@ -731,12 +718,12 @@ do {
               [xs, acc] ~> match xs {
                 []: { out: rev(acc) },
                 [h, ...t]: do {
-                  item :: trim(h)
+                  item := trim(h)
                   if slen(item) == 0 {
                     { state: { xs: t, acc: acc } }
                   } else {
-                    idx :: str.find(item, " as ")
-                    local :: if idx < 0 { item } else { trim(sdrop(item, idx + 4)) }
+                    idx := str.find(item, " as ")
+                    local := if idx < 0 { item } else { trim(sdrop(item, idx + 4)) }
                     if slen(local) == 0 || (idx < 0 && item == "*") {
                       { state: { xs: t, acc: acc } }
                     } else {
@@ -751,11 +738,11 @@ do {
       }
     } else {
       if str.starts_with(t, "import") {
-        rest :: trim_start(sdrop(t, 6))
-        q0 :: if slen(rest) == 0 { "" } else { atc(rest, 0) }
+        rest := trim_start(sdrop(t, 6))
+        q0 := if slen(rest) == 0 { "" } else { atc(rest, 0) }
         if q0 == dq || q0 == sq { [] } else {
-          idx :: str.find(rest, "from")
-          name :: if idx < 0 { trim(rest) } else { trim(stake(rest, idx)) }
+          idx := str.find(rest, "from")
+          name := if idx < 0 { trim(rest) } else { trim(stake(rest, idx)) }
           if is_valid_ident(name) { [name] } else { [] }
         }
       } else {
@@ -777,7 +764,7 @@ do {
 
   -- First char index where the identifier run ends (first char that is
   -- not alphanumeric/`_`, or end of string).
-  ident_end :: s ~> do {
+  ident_end := s ~> do {
     while { i: 0, n: slen(s) } {
       [i, n] ~> if i >= n || !(char.is_alnum(atc(s, i)) || atc(s, i) == "_") {
         { out: i }
@@ -793,17 +780,17 @@ do {
   -- is one identifier) and `export data := …` binds the name `data`;
   -- neither is a declaration.  Mirrors
   -- `handl_runtime::module_prep::is_data_decl_rest`.
-  is_data_decl_rest :: rest ~> do {
-    t :: trim_start(rest)
+  is_data_decl_rest := rest ~> do {
+    t := trim_start(rest)
     if !str.starts_with(t, "data") {
       false
     } else {
-      r :: sdrop(t, 4)
-      c0 :: if slen(r) == 0 { "" } else { atc(r, 0) }
+      r := sdrop(t, 4)
+      c0 := if slen(r) == 0 { "" } else { atc(r, 0) }
       if slen(r) > 0 && (char.is_alnum(c0) || c0 == "_") {
         false
       } else {
-        t2 :: trim_start(r)
+        t2 := trim_start(r)
         slen(t2) > 0 && (char.is_alpha(atc(t2, 0)) || atc(t2, 0) == "_")
       }
     }
@@ -813,7 +800,7 @@ do {
   -- the remainder.  `null` when the group never closes (or `s` does not
   -- start with `open` — callers check that first).  Strings are
   -- respected; backslash escapes are NOT (mirrors the Rust scan).
-  skip_balanced :: [s, open, close] ~> do {
+  skip_balanced := [s, open, close] ~> do {
     if !str.starts_with(s, open) {
       s
     } else {
@@ -831,7 +818,7 @@ do {
                 { state: { xs: t, i: i + 1, depth: depth + 1, q: q } }
               } else {
                 if c == close {
-                  d2 :: depth - 1
+                  d2 := depth - 1
                   if d2 == 0 {
                     { out: sdrop(s, i + 1) }
                   } else {
@@ -850,7 +837,7 @@ do {
 
   -- The interior of the balanced `open…close` group at the start of `s`
   -- (which must begin with `open`).  `null` when the group never closes.
-  balanced_inner :: [s, open, close] ~> do {
+  balanced_inner := [s, open, close] ~> do {
     if !str.starts_with(s, open) {
       null
     } else {
@@ -868,7 +855,7 @@ do {
                 { state: { xs: t, i: i + 1, depth: depth + 1, q: q } }
               } else {
                 if c == close {
-                  d2 :: depth - 1
+                  d2 := depth - 1
                   if d2 == 0 {
                     { out: char.slice(s, 1, i) }
                   } else {
@@ -890,8 +877,8 @@ do {
   -- separator of a `data F :: …` arm list and the `,` entry separator
   -- of the `data F := { … }` record form.  Mirrors
   -- `handl_runtime::module_prep::split_top_level`/`split_top_commas`.
-  split_top_level :: [s, sep] ~> do {
-    n :: slen(s)
+  split_top_level := [s, sep] ~> do {
+    n := slen(s)
     while { xs: char.chars(s), i: 0, depth: 0, q: "", start: 0, acc: [] } {
       [xs, i, depth, q, start, acc] ~> match xs {
         []: { out: rev([char.slice(s, start, n), ...acc]) },
@@ -929,10 +916,10 @@ do {
 
   -- The leading identifier of a constructor arm (`C1(x : T)` → `C1`);
   -- `null` when the arm does not open with a valid identifier.
-  ctor_arm_name :: arm ~> do {
-    a :: trim_start(arm)
-    e :: ident_end(a)
-    nm :: stake(a, e)
+  ctor_arm_name := arm ~> do {
+    a := trim_start(arm)
+    e := ident_end(a)
+    nm := stake(a, e)
     if is_valid_ident(nm) { nm } else { null }
   }
 
@@ -941,8 +928,8 @@ do {
   -- item is not a keyed field (a binding, an expression, a type
   -- annotation).  Mirrors
   -- `handl_runtime::module_prep::record_field_key`.
-  record_field_key :: item ~> do {
-    it :: trim(item)
+  record_field_key := item ~> do {
+    it := trim(item)
     while { xs: char.chars(it), i: 0, depth: 0, q: "" } {
       [xs, i, depth, q] ~> match xs {
         []: { out: null },
@@ -964,10 +951,11 @@ do {
                 { state: { xs: t, i: i + 1, depth: depth - 1, q: q } }
               } else {
                 if c == ":" && depth == 0 {
-                  if atc(it, i + 1) == ":" {
+                  nx := atc(it, i + 1)
+                  if nx == ":" || nx == "=" {
                     { out: null }
                   } else {
-                    k :: trim(stake(it, i))
+                    k := trim(stake(it, i))
                     if is_valid_ident(k) { { out: k } } else { { out: null } }
                   }
                 } else {
@@ -988,19 +976,19 @@ do {
   -- (keyword included).  `null` when no family name is recognizable —
   -- the caller reports rather than silently dropping the declaration.
   -- Mirrors `handl_runtime::module_prep::data_decl_bound_names`.
-  data_decl_bound_names :: decl ~> do {
-    s0 :: trim_start(decl)
+  data_decl_bound_names := decl ~> do {
+    s0 := trim_start(decl)
     if !str.starts_with(s0, "data") {
       null
     } else {
-      s1 :: trim_start(sdrop(s0, 4))
-      fe :: ident_end(s1)
-      fam :: stake(s1, fe)
+      s1 := trim_start(sdrop(s0, 4))
+      fe := ident_end(s1)
+      fam := stake(s1, fe)
       if !is_valid_ident(fam) {
         null
       } else {
-        r0 :: trim_start(sdrop(s1, fe))
-        sb :: if str.starts_with(r0, "<") {
+        r0 := trim_start(sdrop(s1, fe))
+        sb := if str.starts_with(r0, "<") {
           skip_balanced(r0, "<", ">")
         } else {
           if str.starts_with(r0, "(") {
@@ -1012,43 +1000,37 @@ do {
         if sb == null {
           null
         } else {
-          s2 :: trim_start(sb)
-          if str.starts_with(s2, "::") {
-            arms :: split_top_level(sdrop(s2, 2), "|")
-            acc :: while { xs: arms, acc: [fam] } {
-              [xs, acc] ~> match xs {
-                []: { out: acc },
-                [a, ...at]: do {
-                  cn :: ctor_arm_name(a)
-                  if cn == null || member(cn, acc) {
-                    { state: { xs: at, acc: acc } }
-                  } else {
-                    { state: { xs: at, acc: [cn, ...acc] } }
+          s2 := trim_start(sb)
+          if str.starts_with(s2, ":=") {
+            rhs := trim_start(sdrop(s2, 2))
+            if !str.starts_with(rhs, "{") {
+              -- `data F := C0 | C1(x : T) | …` — constructor arms.
+              arms := split_top_level(rhs, "|")
+              acc := while { xs: arms, acc: [fam] } {
+                [xs, acc] ~> match xs {
+                  []: { out: acc },
+                  [a, ...at]: do {
+                    cn := ctor_arm_name(a)
+                    if cn == null || member(cn, acc) {
+                      { state: { xs: at, acc: acc } }
+                    } else {
+                      { state: { xs: at, acc: [cn, ...acc] } }
+                    }
                   }
                 }
               }
-            }
-            rev(acc)
-          } else {
-            rhs0 :: if str.starts_with(s2, ":=") {
-              sdrop(s2, 2)
+              rev(acc)
             } else {
-              if str.starts_with(s2, "=") { sdrop(s2, 1) } else { "" }
-            }
-            rhs :: trim_start(rhs0)
-            if !str.starts_with(rhs, "{") {
-              [fam]
-            } else {
-              inner :: balanced_inner(rhs, "{", "}")
+              inner := balanced_inner(rhs, "{", "}")
               if inner == null {
                 [fam]
               } else {
-                items :: split_top_level(inner, ",")
-                acc2 :: while { xs: items, acc: [fam] } {
+                items := split_top_level(inner, ",")
+                acc2 := while { xs: items, acc: [fam] } {
                   [xs, acc] ~> match xs {
                     []: { out: acc },
                     [e, ...et]: do {
-                      k :: record_field_key(e)
+                      k := record_field_key(e)
                       if k == null || member(k, acc) {
                         { state: { xs: et, acc: acc } }
                       } else {
@@ -1060,6 +1042,8 @@ do {
                 rev(acc2)
               }
             }
+          } else {
+            [fam]
           }
         }
       }
@@ -1088,7 +1072,7 @@ do {
   -- block so the runtime can evaluate them (`prim_import`) and bind their
   -- names for the record.  With no imports the bare object literal (or the
   -- untouched source) is returned, exactly as before.
-  transform_export_to_object :: s ~> do {
+  transform_export_to_object := s ~> do {
     -- flush :: append the in-flight `cur` item to `entries`/`priv`.
     -- `cur` is `{name, lines, kind, exports}` where `kind` is "bind"
     -- (routed by `cur_priv`) or "decl" — an `export data …`
@@ -1097,10 +1081,10 @@ do {
     -- family/ctor/recursor assigns) and projects each bound name into
     -- `entries` as a `name: name` field — mirrors
     -- `handl_runtime::module_prep`'s `PrepItem::Decl`.
-    flush :: [entries, priv, cur, cur_priv] ~> match cur {
+    flush := [entries, priv, cur, cur_priv] ~> match cur {
       null: { entries: entries, priv: priv },
       c: if c.kind == "decl" {
-        en :: while { ys: c.exports, acc: entries } {
+        en := while { ys: c.exports, acc: entries } {
           [ys, acc] ~> match ys {
             []: { out: acc },
             [n, ...nt]: { state: { ys: nt, acc: [{ name: n, expr: n }, ...acc] } }
@@ -1118,21 +1102,21 @@ do {
         }
       }
     }
-    scan :: while { xs: top_level_segments(s), entries: [], priv: [], cur: null, cur_priv: false, tail: true } {
+    scan := while { xs: top_level_segments(s), entries: [], priv: [], cur: null, cur_priv: false, tail: true } {
       [xs, entries, priv, cur, cur_priv, tail] ~> match xs {
         []: do {
-          f :: flush(entries, priv, cur, cur_priv)
+          f := flush(entries, priv, cur, cur_priv)
           { out: { entries: f.entries, priv: f.priv, tail: tail } }
         },
         [h, ...t]: do {
-          t0 :: trim(h)
+          t0 := trim(h)
           if blank(t0) {
             { state: { xs: t, entries: entries, priv: priv, cur: cur, cur_priv: cur_priv, tail: tail } }
           } else {
             if is_import_line(t0) {
-              fe :: from_export_to_import(t0)
-              f :: flush(entries, priv, cur, cur_priv)
-              entries3 :: if fe == null { f.entries } else {
+              fe := from_export_to_import(t0)
+              f := flush(entries, priv, cur, cur_priv)
+              entries3 := if fe == null { f.entries } else {
                 while { ys: fe.names, acc: f.entries } {
                   [ys, acc] ~> match ys {
                     []: { out: acc },
@@ -1142,19 +1126,19 @@ do {
               }
               { state: { xs: t, entries: entries3, priv: f.priv, cur: null, cur_priv: false, tail: tail } }
             } else {
-              erest :: export_decl_rest(t0)
+              erest := export_decl_rest(t0)
               if erest == null {
                 -- Statement that is not an import or `export`
                 -- declaration: detect a *private* top-level binding so
                 -- helpers survive into the do-block instead of being
                 -- dropped or swallowed into the previous export's
                 -- expression.
-                sep0 :: find_binding_sep(t0)
-                nm :: if sep0 == null { "" } else { trim(strip_export_name(stake(t0, sep0.pos))) }
+                sep0 := find_binding_sep(t0)
+                nm := if sep0 == null { "" } else { trim(strip_export_name(stake(t0, sep0.pos))) }
                 if sep0 != null && is_valid_ident(nm) {
-                  f :: flush(entries, priv, cur, cur_priv)
-                  type_only :: sep0.len == 1 && atc(t0, sep0.pos) == ":"
-                  expr0 :: if type_only { "null" } else { trim(sdrop(t0, sep0.pos + sep0.len)) }
+                  f := flush(entries, priv, cur, cur_priv)
+                  type_only := sep0.len == 1 && atc(t0, sep0.pos) == ":"
+                  expr0 := if type_only { "null" } else { trim(sdrop(t0, sep0.pos + sep0.len)) }
                   { state: { xs: t, entries: f.entries, priv: f.priv,
                              cur: { name: nm,
                                     lines: if slen(expr0) == 0 { [] } else { [expr0] },
@@ -1177,7 +1161,7 @@ do {
                   }
                 }
               } else {
-                f :: flush(entries, priv, cur, cur_priv)
+                f := flush(entries, priv, cur, cur_priv)
                 if is_data_decl_rest(erest) {
                   -- `export data F :: …` / `export data F := { … }` — a
                   -- family declaration, not a `name := expr` binding:
@@ -1185,7 +1169,7 @@ do {
                   -- included — the desugar pass consumes it) and export
                   -- the names it binds.  Mirrors
                   -- `handl_runtime::module_prep`'s `PrepItem::Decl`.
-                  dn :: data_decl_bound_names(erest)
+                  dn := data_decl_bound_names(erest)
                   if dn == null {
                     error.raise("module prep: cannot read the family/constructor names of `export data` declaration: " + t0)
                   } else {
@@ -1195,21 +1179,21 @@ do {
                                cur_priv: false, tail: true } }
                   }
                 } else {
-                sep :: find_binding_sep(erest)
+                sep := find_binding_sep(erest)
                 if sep == null {
                   -- Never drop an export declaration silently — a module
                   -- that reaches eval with a vanished export produces an
                   -- empty record (`{}`) or an "unbound name" error far
                   -- from the cause.
-                  error.raise("module prep: cannot transform `export` declaration (expected `export <name> <::|:=|=|: > …`): " + t0)
+                  error.raise("module prep: cannot transform `export` declaration (expected `export <name> <:=|: > …`): " + t0)
                 } else {
-                  nm :: trim(strip_export_name(stake(erest, sep.pos)))
+                  nm := trim(strip_export_name(stake(erest, sep.pos)))
                   if blank(nm) {
                     error.raise("module prep: `export` declaration has no binding name: " + t0)
                   } else {
-                    expr_rhs :: trim(sdrop(erest, sep.pos + sep.len))
-                    type_only :: sep.len == 1 && atc(erest, sep.pos) == ":" || is_signature_rhs(expr_rhs)
-                    expr0 :: if type_only { "null" } else { expr_rhs }
+                    expr_rhs := trim(sdrop(erest, sep.pos + sep.len))
+                    type_only := sep.len == 1 && atc(erest, sep.pos) == ":" || is_signature_rhs(expr_rhs)
+                    expr0 := if type_only { "null" } else { expr_rhs }
                     { state: { xs: t, entries: f.entries, priv: f.priv,
                                cur: { name: nm,
                                       lines: if slen(expr0) == 0 { [] } else { [expr0] },
@@ -1224,13 +1208,13 @@ do {
         }
       }
     }
-    entries :: rev(scan.entries)
-    privs :: rev(scan.priv)
-    imports :: collect_import_lines(s)
+    entries := rev(scan.entries)
+    privs := rev(scan.priv)
+    imports := collect_import_lines(s)
     -- Private bindings as do-block assignments ahead of the record;
     -- `export data …` declarations are verbatim statements (the desugar
     -- pass expands them inside this same `do` block).
-    prelude :: while { xs: privs, acc: "" } {
+    prelude := while { xs: privs, acc: "" } {
       [xs, acc] ~> match xs {
         []: { out: acc },
         [h, ...t]: if h.decl {
@@ -1255,15 +1239,15 @@ do {
         -- The projection is appended only when the module's last top-level
         -- statement is a binding; a trailing `do { … }`/record literal is
         -- already the module's interface value.
-        fields :: if !scan.tail { "" } else do {
-          bound :: while { xs: top_level_segments(s), acc: [] } {
+        fields := if !scan.tail { "" } else do {
+          bound := while { xs: top_level_segments(s), acc: [] } {
             [xs, acc] ~> match xs {
               []: { out: rev(acc) },
               [h, ...t]: do {
-                t0 :: trim(h)
+                t0 := trim(h)
                 if is_import_line(t0) {
-                  ls :: import_bound_locals(t0)
-                  acc2 :: while { ys: ls, a2: acc } {
+                  ls := import_bound_locals(t0)
+                  acc2 := while { ys: ls, a2: acc } {
                     [ys, a2] ~> match ys {
                       []: { out: a2 },
                       [lh, ...lt]: { state: { ys: lt, a2: [lh, ...a2] } }
@@ -1276,14 +1260,14 @@ do {
               }
             }
           }
-          ordered :: do {
-            a1 :: while { xs: privs, acc: [] } {
+          ordered := do {
+            a1 := while { xs: privs, acc: [] } {
               [xs, acc] ~> match xs {
                 []: { out: acc },
                 [h, ...t]: { state: { xs: t, acc: [h.name, ...acc] } }
               }
             }
-            a2 :: while { xs: bound, acc: a1 } {
+            a2 := while { xs: bound, acc: a1 } {
               [xs, acc] ~> match xs {
                 []: { out: acc },
                 [h, ...t]: { state: { xs: t, acc: [h, ...acc] } }
@@ -1291,7 +1275,7 @@ do {
             }
             rev(a2)
           }
-          fscan :: while { xs: ordered, acc: [], seen: [] } {
+          fscan := while { xs: ordered, acc: [], seen: [] } {
             [xs, acc, seen] ~> match xs {
               []: { out: rev(acc) },
               [h, ...t]: if is_valid_ident(h) && !member(h, seen) {
@@ -1303,13 +1287,13 @@ do {
           }
           str.join(fscan, ", ")
         }
-        imps :: while { xs: imports, acc: "" } {
+        imps := while { xs: imports, acc: "" } {
           [xs, acc] ~> match xs {
             []: { out: acc },
             [h, ...t]: { state: { xs: t, acc: acc + h + nl } }
           }
         }
-        tail :: if slen(fields) == 0 { "" } else { nl + "{ " + fields + " }" }
+        tail := if slen(fields) == 0 { "" } else { nl + "{ " + fields + " }" }
         "do {" + nl + imps + drop_import_lines(s) + tail + nl + "}"
       }
     } else if list_len(imports) == 0 {
@@ -1329,20 +1313,20 @@ do {
   -- parse_caps -- `cap "name"` declarations -> `[name, ...]`
   -- ---------------------------------------------------------------------
 
-  parse_caps :: s ~> do {
+  parse_caps := s ~> do {
     while { xs: str.lines(s), acc: [] } {
       [xs, acc] ~> match xs {
         []: { out: rev(acc) },
         [h, ...t]: do {
-          ln :: trim(h)
+          ln := trim(h)
           if slen(ln) == 0 || str.starts_with(ln, "--") {
             { state: { xs: t, acc: acc } }
           } else {
-            r :: kw_rest(ln, "cap", [])
+            r := kw_rest(ln, "cap", [])
             if r == null {
               { state: { xs: t, acc: acc } }
             } else {
-              q :: extract_quoted(trim_start(r))
+              q := extract_quoted(trim_start(r))
               match q {
                 null: { state: { xs: t, acc: acc } },
                 qq: { state: { xs: t, acc: [qq.text, ...acc] } }
@@ -1355,21 +1339,22 @@ do {
   }
 
   -- ---------------------------------------------------------------------
-  -- parse_tags -- `tag name <::|=> Type` declarations ->
-  -- `[{name, payload}, ...]`.  `::` is preferred over `=` even when a
-  -- `=` appears earlier in the line (mirrors the Rust scan).
+  -- parse_tags -- `tag name := Type` declarations ->
+  -- `[{name, payload}, ...]`.  `:=` is preferred; a bare `=`/`=>` is
+  -- tolerated for legacy lines (tag decls are stripped before parse, so
+  -- the `=` never reaches the grammar — `:=` is the canonical sep).
   -- ---------------------------------------------------------------------
 
-  tag_name_ok :: name ~> do {
+  tag_name_ok := name ~> do {
     slen(name) > 0 && all(char.chars(name), c ~> char.is_alnum(c) || c == "_")
   }
 
-  tag_sep :: rest ~> do {
-    i2 :: str.find(rest, "::")
+  tag_sep := rest ~> do {
+    i2 := str.find(rest, ":=")
     if i2 >= 0 {
       { pos: i2, len: 2 }
     } else {
-      i1 :: str.find(rest, "=")
+      i1 := str.find(rest, "=")
       if i1 >= 0 {
         { pos: i1, len: 1 }
       } else {
@@ -1378,25 +1363,25 @@ do {
     }
   }
 
-  parse_tags :: s ~> do {
+  parse_tags := s ~> do {
     while { xs: str.lines(s), acc: [] } {
       [xs, acc] ~> match xs {
         []: { out: rev(acc) },
         [h, ...t]: do {
-          ln :: trim(h)
+          ln := trim(h)
           if slen(ln) == 0 || str.starts_with(ln, "--") {
             { state: { xs: t, acc: acc } }
           } else {
-            r :: kw_rest(ln, "tag", [])
+            r := kw_rest(ln, "tag", [])
             if r == null {
               { state: { xs: t, acc: acc } }
             } else {
-              sep :: tag_sep(r)
+              sep := tag_sep(r)
               if sep == null {
                 { state: { xs: t, acc: acc } }
               } else {
-                name :: trim(stake(r, sep.pos))
-                payload :: trim(sdrop(r, sep.pos + sep.len))
+                name := trim(stake(r, sep.pos))
+                payload := trim(sdrop(r, sep.pos + sep.len))
                 if tag_name_ok(name) && slen(payload) > 0 {
                   { state: { xs: t, acc: [{ name: name, payload: payload }, ...acc] } }
                 } else {
@@ -1412,7 +1397,7 @@ do {
 
   -- ---------------------------------------------------------------------
   -- expand_tags -- strip `tag` declaration lines and generate constructor
-  -- bindings `name :: _0 ~> hash_map.set({value: _0}, "__tag__", "name")`,
+  -- bindings `name := _0 ~> hash_map.set({value: _0}, "__tag__", "name")`,
   -- wrapping the remaining source in `do { ... }`.  No tags -> source
   -- unchanged.  (`tag.tag` was deleted with the `__tag__` bridge —
   -- ADR-0152 §Migration; `hash_map.set` mints the same record.)
@@ -1420,12 +1405,12 @@ do {
 
   -- True when the trimmed line is a strippable `tag` declaration
   -- (`tag` + separator + alphanumeric name; payload is not checked).
-  is_tag_decl_line :: ln ~> do {
-    r :: kw_rest(ln, "tag", [])
+  is_tag_decl_line := ln ~> do {
+    r := kw_rest(ln, "tag", [])
     if r == null {
       false
     } else {
-      sep :: tag_sep(r)
+      sep := tag_sep(r)
       if sep == null {
         false
       } else {
@@ -1436,15 +1421,15 @@ do {
 
   -- Emit the `do { ... }` wrapper: constructor lines, then the remaining
   -- source lines each indented by two spaces (blank lines stay blank).
-  emit_tag_block :: [tags, lines] ~> do {
-    ctors :: while { xs: tags, acc: "" } {
+  emit_tag_block := [tags, lines] ~> do {
+    ctors := while { xs: tags, acc: "" } {
       [xs, acc] ~> match xs {
         []: { out: acc },
         [h, ...t]: { state: { xs: t,
-                     acc: acc + "  " + h.name + " :: _0 ~> hash_map.set({value: _0}, " + dq + "__tag__" + dq + ", " + dq + h.name + dq + ")" + nl } }
+                     acc: acc + "  " + h.name + " := _0 ~> hash_map.set({value: _0}, " + dq + "__tag__" + dq + ", " + dq + h.name + dq + ")" + nl } }
       }
     }
-    body :: while { xs: lines, acc: ctors } {
+    body := while { xs: lines, acc: ctors } {
       [xs, acc] ~> match xs {
         []: { out: acc },
         [h, ...t]: if blank(h) {
@@ -1457,16 +1442,16 @@ do {
     "do {" + nl + body + "}"
   }
 
-  expand_tags :: s ~> do {
-    tags :: parse_tags(s)
+  expand_tags := s ~> do {
+    tags := parse_tags(s)
     if list_len(tags) == 0 {
       s
     } else {
-      kept :: while { xs: str.lines(s), acc: [] } {
+      kept := while { xs: str.lines(s), acc: [] } {
         [xs, acc] ~> match xs {
           []: { out: rev(acc) },
           [h, ...t]: do {
-            ln :: trim(h)
+            ln := trim(h)
             if slen(ln) == 0 || str.starts_with(ln, "--") {
               { state: { xs: t, acc: [h, ...acc] } }
             } else {
@@ -1487,7 +1472,7 @@ do {
   -- escape_string -- escape `"` and `\` for embedding in a `"..."` literal
   -- ---------------------------------------------------------------------
 
-  escape_string :: s ~> do {
+  escape_string := s ~> do {
     while { xs: char.chars(s), acc: "" } {
       [xs, acc] ~> match xs {
         []: { out: acc },
@@ -1509,12 +1494,12 @@ do {
   --   strip comments -> strip decls -> transform exports -> expand tags
   -- ---------------------------------------------------------------------
 
-  prepare :: s ~> expand_tags(transform_export_to_object(strip_decls(strip_comments(s))))
+  prepare := s ~> expand_tags(transform_export_to_object(strip_decls(strip_comments(s))))
 
   -- One-shot analysis over a raw .hnl source: the prepared (evaluatable)
   -- source plus the declaration scans the host needs (`caps` for plugin
   -- capabilities, `tags`).
-  analyze :: s ~> do {
+  analyze := s ~> do {
     {
       source: prepare(s),
       caps: parse_caps(s),
