@@ -10,7 +10,7 @@ The pure-handl module loader (`loader.hnl`), vendored by
 | `src/index.hnl` | the .hnl source (pure handl) |
 | `pkg.hnl` | package manifest — modules, deps, license |
 | `docs/` | site docs (`site.yaml` + `site/`) |
-| `scripts/hnl-gate.sh`, `ci.sh` | the gate / bupha entry |
+| `scripts/hnl-gate.sh`, `workflows/gate.yaml` | the gate / bupha entry |
 
 ## Contract
 
