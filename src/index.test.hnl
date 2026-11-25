@@ -1,0 +1,38 @@
+--- loader tests — smoke coverage for the pure-handl bootstrap loader
+--- (`src/index.hnl`): comment/decl stripping, binding-separator
+--- scanning, cap/tag parsing, string escaping.
+
+from "./index" import * as m
+
+-- strip_comments ------------------------------------------------------------
+
+test_strip_comments_basic := assert m.strip_comments("-- a\nx := 1\n-- b\ny := 2") == "x := 1\ny := 2"
+test_strip_comments_none := assert m.strip_comments("x := 1") == "x := 1"
+test_strip_comments_indented := assert m.strip_comments("  -- c\nz := 3") == "z := 3"
+
+-- strip_decls ---------------------------------------------------------------
+
+test_strip_decls_cap := assert m.strip_decls("cap \"fs\"\nx := 1") == "x := 1"
+test_strip_decls_handl := assert m.strip_decls("handl \"h\"\nx := 1") == "x := 1"
+test_strip_decls_op := assert m.strip_decls("op \"o\"\nx := 1") == "x := 1"
+test_strip_decls_guarantee := assert m.strip_decls("x := 1\n  guarantee: g") == "x := 1"
+test_strip_decls_keeps_import := assert m.strip_decls("from \"type\" import { T }\nx := 1") == "from \"type\" import { T }\nx := 1"
+
+-- find_binding_sep -----------------------------------------------------------
+
+test_sep_assign := assert m.find_binding_sep("x := 1") == { pos: 2, len: 2 }
+test_sep_export := assert m.find_binding_sep("export f := 1") == { pos: 9, len: 2 }
+test_sep_type_only := assert m.find_binding_sep("x : T") == { pos: 2, len: 1 }
+test_sep_none := assert m.find_binding_sep("x = 1") == null
+
+-- parse_caps / escape_string -------------------------------------------------
+
+test_parse_caps := assert m.parse_caps("cap \"fs\"\ncap \"net\"\nx := 1") == ["fs", "net"]
+test_parse_caps_ignores := assert m.parse_caps("x := 1\n-- cap \"no\"") == []
+test_escape_dquote := assert m.escape_string("a\"b") == "a\\\"b"
+test_escape_backslash := assert m.escape_string("a\\b") == "a\\\\b"
+test_escape_plain := assert m.escape_string("abc") == "abc"
+
+-- analyze --------------------------------------------------------------------
+
+test_analyze_caps := assert m.analyze("cap \"fs\"\nx := 1").caps == ["fs"]
