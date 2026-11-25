@@ -1,3 +1,35 @@
+# lib-loader
+
+The pure-handl module loader (`loader.hnl`), vendored by
+`plugin-lib-handl`.
+
+## Layout
+
+| path | role |
+| --- | --- |
+| `src/index.hnl` | the .hnl source (pure handl) |
+| `pkg.hnl` | package manifest — modules, deps, license |
+| `docs/` | site docs (`site.yaml` + `site/`) |
+| `scripts/hnl-gate.sh`, `ci.sh` | the gate / bupha entry |
+
+## Contract
+
+- Pure `.hnl` package surface: consumers copy `pkg.hnl` +
+  `src/**/*.hnl` via `handl-pkg-vendor` into `OUT_DIR` and embed them
+  with `include_str!` at their own build time (`plugin-lib-handl`
+  does this). No Rust crate ships here.
+- No `Cargo.toml` — the package is vendored source, not a crate.
+
+## Verification
+
+```bash
+HNL=../host-cli/target/debug/hnl scripts/hnl-gate.sh
+```
+
+## License
+
+MIT.
+
 <!-- myco:agent-awareness -->
 
 ## Agent awareness
