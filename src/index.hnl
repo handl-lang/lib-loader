@@ -1050,6 +1050,195 @@ do {
     }
   }
 
+  -- ---------------------------------------------------------------------
+  -- Statement-continuation checks (segment_continues_item)
+  --
+  -- Mirrors `handl_runtime::module_prep::segment_continues_item`: a
+  -- non-binding top-level segment continues the in-flight `name := …`
+  -- item only when it cannot stand alone as a statement — a fragment
+  -- lead (`.`, `)`, `]`, `}`, `,`, `;`, `:`, an operator/arrow), a
+  -- continuation keyword (`else`, `catch`, `and`, `or`, …), or an
+  -- *incomplete* accumulated expression (operator/dangling-keyword
+  -- tail, or a block keyword still owed its `{ … }` body).  Anything
+  -- else — `do { … }`, a record literal, a call — is a new statement;
+  -- when it is the module's last statement its own value is the module
+  -- record.  Unconditionally absorbing the segment kept `tail` true, so
+  -- a binding followed by a trailing `do { … }` record exported
+  -- `{ name: name }` and silently dropped the record (the lib-pred
+  -- `from "char" import * as char` + trailing combinator record
+  -- evaluated to `{ "char": "char" }`).
+  -- ---------------------------------------------------------------------
+
+  -- `s` ends with `suf` (char-indexed; `str.ends_with` is not on the
+  -- floor).
+  ends_with := [s, suf] ~> slen(s) >= slen(suf) && sdrop(s, slen(s) - slen(suf)) == suf
+
+  -- Run of word characters (alnum/`_`) at the head of `s` — "" when `s`
+  -- opens with punctuation.  Mirrors the Rust `split(non-word).next()`.
+  lead_word := s ~> do {
+    while { xs: char.chars(s), acc: "" } {
+      [xs, acc] ~> match xs {
+        []: { out: acc },
+        [h, ...t]: if char.is_alnum(h) || h == "_" {
+          { state: { xs: t, acc: acc + h } }
+        } else {
+          { out: acc }
+        }
+      }
+    }
+  }
+
+  -- Word characters at the *tail* of `s`, in order — the last
+  -- whitespace/punctuation-delimited word.
+  last_word := s ~> do {
+    while { xs: rev(char.chars(s)), acc: "" } {
+      [xs, acc] ~> match xs {
+        []: { out: acc },
+        [h, ...t]: if char.is_alnum(h) || h == "_" {
+          { state: { xs: t, acc: h + acc } }
+        } else {
+          { out: acc }
+        }
+      }
+    }
+  }
+
+  -- Punctuation that cannot open a top-level statement — a closer,
+  -- delimiter, operator, or arrow.  `(`, `[`, `{`, quotes, digits, and
+  -- identifiers are *not* here: they can begin statements, so they
+  -- continue only via the incompleteness checks.
+  frag_lead_chars := [".", ")", "]", "}", ",", ";", ":", "?", "|", "&",
+                      "=", "<", ">", "+", "*", "/", "%", "^", "~", "@",
+                      "#", "$", "`", "-", "!"]
+
+  -- Keywords that can only continue an expression, never open a
+  -- statement (`else { … }`, `and`/`or`/`in`/`of`/`as` operand tails,
+  -- `catch`/`finally` handlers, …).
+  cont_lead_words := ["else", "catch", "finally", "then", "elif",
+                      "otherwise", "and", "or", "xor", "not", "in",
+                      "of", "is", "as", "mod", "div", "rem", "where",
+                      "with", "when", "unless", "until", "by", "via"]
+
+  -- Keywords whose trailing position means the expression still owes
+  -- an operand or block (`x := a +` ⏎ `b`, `… if`, `… else`, …).
+  inc_tail_words := ["if", "else", "match", "while", "for", "handle",
+                     "do", "then", "in", "of", "and", "or", "xor",
+                     "not", "is", "as", "mod", "div", "rem", "return",
+                     "yield", "where", "with"]
+
+  -- Keywords that introduce a `{ … }` block which may arrive as the
+  -- *next* segment when the head wraps (`if cond` ⏎ `{ … }`).
+  block_lead_words := ["if", "else", "match", "while", "for", "handle",
+                       "do", "then", "in", "of"]
+
+  -- `{ word, rest, end }` — consume the word-char run at the head of
+  -- char list `cs` (whose head sits at absolute index `i`); `end` is
+  -- the index just past the word.
+  span_word := [cs, i] ~> do {
+    while { xs: cs, buf: "" } {
+      [xs, buf] ~> match xs {
+        []: { out: { word: buf, rest: [], end: i + slen(buf) } },
+        [h, ...t]: if char.is_alnum(h) || h == "_" {
+          { state: { xs: t, buf: buf + h } }
+        } else {
+          { out: { word: buf, rest: [h, ...t], end: i + slen(buf) } }
+        }
+      }
+    }
+  }
+
+  -- Index just after the last block-introducing keyword in `text`
+  -- (word-boundary scan; -1 when none).  Keywords inside string
+  -- literals are not excluded — a `"if"` tail only preserves the old
+  -- merge behavior, never a wrong split.
+  last_block_kw_end := text ~> do {
+    while { cs: char.chars(text), i: 0, kw: -1 } {
+      [cs, i, kw] ~> match cs {
+        []: { out: kw },
+        [h, ...t]: if char.is_alnum(h) || h == "_" {
+          r := span_word(cs, i)
+          { state: { cs: r.rest, i: r.end,
+                     kw: if member(r.word, block_lead_words) { r.end } else { kw } } }
+        } else {
+          { state: { cs: t, i: i + 1, kw: kw } }
+        }
+      }
+    }
+  }
+
+  -- Whether the `{`-count after `pos` in `text` is still open (or no
+  -- `{` has appeared at all) — the pending-block test.
+  braces_pending := [text, pos] ~> do {
+    sub := char.slice(text, pos, slen(text))
+    c := while { xs: char.chars(sub), open: 0, seen: false } {
+      [xs, open, seen] ~> match xs {
+        []: { out: { open: open, seen: seen } },
+        [h, ...t]: { state: { xs: t,
+            open: open + (if h == "{" { 1 } else { if h == "}" { -1 } else { 0 } }),
+            seen: seen || h == "{" } }
+      }
+    }
+    !c.seen || c.open > 0
+  }
+
+  -- Whether the accumulated expression (`lines`, newest-first) ends
+  -- inside a construct still owed its `{ … }` block.
+  item_expects_block := lines ~> do {
+    text := str.join(rev(lines), nl)
+    kw := last_block_kw_end(text)
+    if kw < 0 { false } else { braces_pending(text, kw) }
+  }
+
+  -- Whether the accumulated expression ends mid-expression — operator,
+  -- comma, colon, dot, or arrow tail whose operand arrives on the next
+  -- segment, or a dangling keyword still owed its operand/block.
+  item_expression_incomplete := lines ~> do {
+    tail := trim(head(lines))
+    if slen(tail) == 0 {
+      false
+    } else {
+      lc := atc(tail, slen(tail) - 1)
+      if member(lc, ["+", "-", "*", "/", "%", "=", "<", ">", "!", "&",
+                     "|", "^", "~", "?", ":", ",", "."]) {
+        true
+      } else {
+        if ends_with(tail, "->") || ends_with(tail, "=>")
+           || ends_with(tail, "~>") || ends_with(tail, "|>")
+           || ends_with(tail, "<|") {
+          true
+        } else {
+          member(last_word(tail), inc_tail_words)
+        }
+      }
+    }
+  }
+
+  -- Whether non-binding segment `seg` continues the in-flight item
+  -- (`cur.lines`, newest-first).  Mirrors
+  -- `handl_runtime::module_prep::segment_continues_item`.
+  segment_continues_item := [lines, seg0] ~> do {
+    seg := trim_start(seg0)
+    if slen(seg) == 0 {
+      false
+    } else {
+      c0 := atc(seg, 0)
+      if member(c0, frag_lead_chars) {
+        true
+      } else {
+        w := lead_word(seg)
+        if member(w, cont_lead_words) {
+          true
+        } else {
+          if c0 == "{" && item_expects_block(lines) {
+            true
+          } else {
+            item_expression_incomplete(lines)
+          }
+        }
+      }
+    }
+  }
+
   -- Scan top-level statements (via `top_level_segments`), collecting
   -- `{name, expr}` entries.  `cur` is null or the current `{name, lines}`
   -- record under construction (segments reversed); `cur_priv` marks it as
@@ -1145,19 +1334,31 @@ do {
                                     kind: "bind", exports: [] },
                              cur_priv: true, tail: true } }
                 } else {
-                  -- A non-binding statement that does not continue an
-                  -- in-flight binding means the module's last statement
-                  -- is a bare expression (`do { … }`, record literal,
-                  -- call) — its value is the module record, so no
-                  -- projection is appended.  Otherwise the segment
-                  -- continues the current binding's expression verbatim.
+                  -- A non-binding segment that cannot continue the
+                  -- in-flight item is a new top-level statement.  When
+                  -- it is the module's last statement and is itself a
+                  -- bare expression (`do { … }`, record literal, call)
+                  -- its value is the module record, so no projection
+                  -- is appended.  Segments that *do* continue (a
+                  -- `}`/`)` closer, `.field`, an operator-led operand,
+                  -- `else { … }`, or the `{ … }` body of a pending
+                  -- `if`/`match`/`do`) join the item's expression
+                  -- verbatim — see `segment_continues_item`.
                   match cur {
                     null: { state: { xs: t, entries: entries, priv: priv, cur: cur,
                                      cur_priv: cur_priv, tail: false } },
-                    c: { state: { xs: t, entries: entries, priv: priv,
-                                  cur: { name: c.name, lines: [h, ...c.lines],
-                                         kind: c.kind, exports: c.exports },
-                                  cur_priv: cur_priv, tail: tail } }
+                    c: if segment_continues_item(c.lines, t0) {
+                      { state: { xs: t, entries: entries, priv: priv,
+                                 cur: { name: c.name, lines: [h, ...c.lines],
+                                        kind: c.kind, exports: c.exports },
+                                 cur_priv: cur_priv, tail: tail } }
+                    } else {
+                      do {
+                        f2 := flush(entries, priv, c, cur_priv)
+                        { state: { xs: t, entries: f2.entries, priv: f2.priv,
+                                   cur: null, cur_priv: false, tail: false } }
+                      }
+                    }
                   }
                 }
               } else {
